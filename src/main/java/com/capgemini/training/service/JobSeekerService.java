@@ -10,38 +10,37 @@ import com.capgemini.training.Repo.JobSeekerRepository;
 import com.capgemini.training.entity.JobSeeker;
 
 @Service
-public class JobSeekerService   {
+public class JobSeekerService {
 
     private final JobSeekerRepository jobSeekerRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public JobSeekerService(JobSeekerRepository jobSeekerRepository, PasswordEncoder passwordEncoder){
+    public JobSeekerService(JobSeekerRepository jobSeekerRepository,
+                            PasswordEncoder passwordEncoder) {
         this.jobSeekerRepository = jobSeekerRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
-    //CRUD OPERATIONS
+    // ─── CREATE ────────────────────────────────────────────────────────────────
 
-    //CREATE
     public JobSeeker register(JobSeeker jobSeeker) {
-        if(jobSeekerRepository.existsByEmail(jobSeeker.getEmail())) {
+        if (jobSeekerRepository.existsByEmail(jobSeeker.getEmail())) {
             throw new RuntimeException("Email already registered: " + jobSeeker.getEmail());
         }
         jobSeeker.setPassword(passwordEncoder.encode(jobSeeker.getPassword()));
-
         return jobSeekerRepository.save(jobSeeker);
     }
 
+    // ─── READ ──────────────────────────────────────────────────────────────────
 
-    //READ
     public List<JobSeeker> getAllSeekers() {
         return jobSeekerRepository.findAll();
     }
 
     public JobSeeker getById(Long id) {
-        return jobSeekerRepository.findById(id).orElseThrow(() -> new RuntimeException("Job Seeker not found with id " + id));
-
+        return jobSeekerRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Job Seeker not found with id: " + id));
     }
 
     public JobSeeker getByEmail(String email) {
@@ -49,8 +48,8 @@ public class JobSeekerService   {
                 .orElseThrow(() -> new RuntimeException("Job seeker not found with email: " + email));
     }
 
+    // ─── UPDATE ────────────────────────────────────────────────────────────────
 
-    //DELETE
     public JobSeeker updateProfile(Long id, JobSeeker updatedData) {
         JobSeeker existing = getById(id);
 
@@ -59,20 +58,23 @@ public class JobSeekerService   {
         existing.setResumeLink(updatedData.getResumeLink());
         existing.setLocation(updatedData.getLocation());
 
-        if (updatedData.getPassword() != null && !((String) updatedData.getPassword()).isBlank()) {
+        // Only update password if a new one was actually provided
+        if (updatedData.getPassword() != null && !updatedData.getPassword().isBlank()) {
             existing.setPassword(passwordEncoder.encode(updatedData.getPassword()));
         }
 
         return jobSeekerRepository.save(existing);
     }
 
-    //DELETE
+    // ─── DELETE ────────────────────────────────────────────────────────────────
+
     public void deleteSeeker(Long id) {
         JobSeeker seeker = getById(id);
         jobSeekerRepository.delete(seeker);
     }
 
-    // Add this method to JobSeekerService
+    // ─── AUTH HELPER ───────────────────────────────────────────────────────────
+
     public boolean checkPassword(String rawPassword, String encodedPassword) {
         return passwordEncoder.matches(rawPassword, encodedPassword);
     }

@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.capgemini.training.Repo.JobApplicationRepository;
 import com.capgemini.training.entity.Employer;
 import com.capgemini.training.entity.Job;
 import com.capgemini.training.entity.JobApplication;
@@ -38,13 +37,12 @@ public class JobController {
         this.applicationService = applicationService;
     }
 
-    // ─── PUBLIC JOB LISTINGS (anyone can see this) ──────────────────────────────
+    // ─── PUBLIC JOB LISTINGS ────────────────────────────────────────────────────
+
     @GetMapping
     public String listJobs(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String location,
-            // required=false means these URL params are optional
-            // e.g. GET /jobs?keyword=java&location=delhi
             Model model) {
 
         List<Job> jobs = jobService.searchJobs(keyword, location);
@@ -55,20 +53,21 @@ public class JobController {
     }
 
     // ─── VIEW SINGLE JOB DETAIL ─────────────────────────────────────────────────
+
     @GetMapping("/{id}")
-    // {id} is a path variable — GET /jobs/5 means id=5
     public String viewJob(@PathVariable Long id, Model model,
                           HttpSession session) {
         Job job = jobService.getById(id);
         model.addAttribute("job", job);
 
-        // Pass seeker info to JSP so it can show "Apply" or "Already Applied"
+        // Pass seeker info so JSP can show Apply or Already Applied
         Object seeker = session.getAttribute("loggedInSeeker");
         model.addAttribute("loggedInSeeker", seeker);
         return "job/detail";
     }
 
-    // ─── SHOW POST JOB FORM (employer only) ─────────────────────────────────────
+    // ─── SHOW POST JOB FORM ─────────────────────────────────────────────────────
+
     @GetMapping("/post")
     public String showPostForm(HttpSession session, Model model,
                                RedirectAttributes redirectAttributes) {
@@ -85,6 +84,7 @@ public class JobController {
     }
 
     // ─── HANDLE POST JOB SUBMIT ─────────────────────────────────────────────────
+
     @PostMapping("/post")
     public String postJob(
             @Valid @ModelAttribute("job") Job job,
@@ -114,6 +114,7 @@ public class JobController {
     }
 
     // ─── SHOW EDIT JOB FORM ─────────────────────────────────────────────────────
+
     @GetMapping("/{id}/edit")
     public String showEditForm(@PathVariable Long id, HttpSession session,
                                Model model, RedirectAttributes redirectAttributes) {
@@ -125,7 +126,7 @@ public class JobController {
 
         Job job = jobService.getById(id);
 
-        // Make sure this employer owns this job before showing the edit form
+        // Make sure this employer owns this job
         if (!job.getEmployer().getId().equals(employer.getId())) {
             redirectAttributes.addFlashAttribute("errorMessage",
                     "You are not authorized to edit this job");
@@ -137,6 +138,7 @@ public class JobController {
     }
 
     // ─── HANDLE EDIT JOB SUBMIT ─────────────────────────────────────────────────
+
     @PostMapping("/{id}/edit")
     public String updateJob(
             @PathVariable Long id,
@@ -157,7 +159,8 @@ public class JobController {
 
         try {
             jobService.updateJob(id, employer.getId(), updatedJob);
-            redirectAttributes.addFlashAttribute("successMessage", "Job updated!");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Job updated successfully!");
             return "redirect:/employers/dashboard";
         } catch (RuntimeException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
@@ -165,7 +168,8 @@ public class JobController {
         }
     }
 
-    // ─── DELETE (SOFT) JOB ──────────────────────────────────────────────────────
+    // ─── SOFT DELETE JOB ────────────────────────────────────────────────────────
+
     @PostMapping("/{id}/delete")
     public String deleteJob(@PathVariable Long id, HttpSession session,
                             RedirectAttributes redirectAttributes) {
@@ -186,10 +190,12 @@ public class JobController {
         }
     }
 
-    // ─── VIEW APPLICATIONS FOR A JOB (employer only) ────────────────────────────
+    // ─── VIEW APPLICATIONS FOR A JOB ────────────────────────────────────────────
+
     @GetMapping("/{id}/applications")
     public String viewApplications(@PathVariable Long id, HttpSession session,
-                                   Model model, RedirectAttributes redirectAttributes) {
+                                   Model model,
+                                   RedirectAttributes redirectAttributes) {
         Employer employer = (Employer) session.getAttribute("loggedInEmployer");
 
         if (employer == null) {
@@ -209,7 +215,8 @@ public class JobController {
         return "job/applications";
     }
 
-    // ─── UPDATE APPLICATION STATUS (employer action) ────────────────────────────
+    // ─── UPDATE APPLICATION STATUS ──────────────────────────────────────────────
+
     @PostMapping("/applications/{applicationId}/status")
     public String updateApplicationStatus(
             @PathVariable Long applicationId,
@@ -227,7 +234,6 @@ public class JobController {
         try {
             applicationService.updateStatus(applicationId,
                     JobApplication.ApplicationStatus.valueOf(status));
-            // valueOf converts the string "ACCEPTED" to the enum ApplicationStatus.ACCEPTED
             redirectAttributes.addFlashAttribute("successMessage",
                     "Application status updated!");
         } catch (RuntimeException e) {

@@ -25,6 +25,5 @@ public class HomeController {
                 .limit(6)
                 .toList());
         return "home";
-        // Looks for: /WEB-INF/views/home.jsp
     }
 }

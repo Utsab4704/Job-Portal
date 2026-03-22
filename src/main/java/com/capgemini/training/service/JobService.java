@@ -27,16 +27,11 @@ public class JobService {
     // ─── CREATE ────────────────────────────────────────────────────────────────
 
     @Transactional
-
     public Job postJob(Long employerId, Job job) {
         Employer employer = employerService.getById(employerId);
         job.setEmployer(employer);
         job.setActive(true);
-
-        Job savedJob = jobRepository.save(job);
-
-
-        return savedJob;
+        return jobRepository.save(job);
     }
 
     // ─── READ ──────────────────────────────────────────────────────────────────
@@ -56,19 +51,23 @@ public class JobService {
 
     public List<Job> searchJobs(String keyword, String location) {
 
+        // Both keyword and location provided
         if (keyword != null && !keyword.isBlank() &&
                 location != null && !location.isBlank()) {
             return jobRepository.searchByKeywordAndLocation(keyword, location);
         }
 
+        // Only keyword provided
         if (keyword != null && !keyword.isBlank()) {
             return jobRepository.searchByKeyword(keyword);
         }
 
+        // Only location provided
         if (location != null && !location.isBlank()) {
             return jobRepository.findByLocationContainingIgnoreCaseAndActiveTrue(location);
         }
 
+        // Neither provided — return all active jobs
         return jobRepository.findByActiveTrue();
     }
 
@@ -89,25 +88,21 @@ public class JobService {
         existing.setSalaryRange(updatedData.getSalaryRange());
         existing.setJobType(updatedData.getJobType());
 
-        Job savedJob = jobRepository.save(existing);
-
-        return savedJob;
+        return jobRepository.save(existing);
     }
 
     // ─── DELETE (Soft Delete) ──────────────────────────────────────────────────
 
     @Transactional
-
     public void softDeleteJob(Long jobId, Long employerId) {
         Job job = getById(jobId);
 
+        // Security check: make sure this employer actually owns this job
         if (!job.getEmployer().getId().equals(employerId)) {
             throw new RuntimeException("Unauthorized: You do not own this job");
         }
 
         job.setActive(false);
         jobRepository.save(job);
-
     }
-
 }

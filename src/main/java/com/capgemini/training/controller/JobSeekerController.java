@@ -33,12 +33,15 @@ public class JobSeekerController {
         this.applicationService = applicationService;
     }
 
-    // ─── REGISTER ───────────────────────────────────────────────────────────────
+    // ─── SHOW REGISTRATION FORM ─────────────────────────────────────────────────
+
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
         model.addAttribute("jobSeeker", new JobSeeker());
         return "jobseeker/register";
     }
+
+    // ─── HANDLE REGISTRATION ────────────────────────────────────────────────────
 
     @PostMapping("/register")
     public String register(
@@ -61,12 +64,15 @@ public class JobSeekerController {
         }
     }
 
-    // ─── LOGIN ───────────────────────────────────────────────────────────────────
+    // ─── SHOW LOGIN FORM ────────────────────────────────────────────────────────
+
     @GetMapping("/login")
     public String showLoginForm(Model model) {
         model.addAttribute("jobSeeker", new JobSeeker());
         return "jobseeker/login";
     }
+
+    // ─── HANDLE LOGIN ───────────────────────────────────────────────────────────
 
     @PostMapping("/login")
     public String login(
@@ -78,7 +84,6 @@ public class JobSeekerController {
         try {
             JobSeeker seeker = seekerService.getByEmail(email);
 
-            // Reuse the same password check pattern as EmployerService
             if (!seekerService.checkPassword(password, seeker.getPassword())) {
                 redirectAttributes.addFlashAttribute("errorMessage",
                         "Invalid credentials");
@@ -96,25 +101,28 @@ public class JobSeekerController {
     }
 
     // ─── DASHBOARD ──────────────────────────────────────────────────────────────
+
     @GetMapping("/dashboard")
     public String dashboard(HttpSession session, Model model,
                             RedirectAttributes redirectAttributes) {
         JobSeeker seeker = (JobSeeker) session.getAttribute("loggedInSeeker");
 
         if (seeker == null) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Please log in first");
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Please log in first");
             return "redirect:/seekers/login";
         }
 
+        // Refresh from DB in case profile was updated
         seeker = seekerService.getById(seeker.getId());
         model.addAttribute("seeker", seeker);
-        // Load all applications this seeker has submitted
         model.addAttribute("applications",
                 applicationService.getApplicationsBySeeker(seeker.getId()));
         return "jobseeker/dashboard";
     }
 
-    // ─── EDIT PROFILE ────────────────────────────────────────────────────────────
+    // ─── SHOW EDIT PROFILE FORM ─────────────────────────────────────────────────
+
     @GetMapping("/edit")
     public String showEditForm(HttpSession session, Model model,
                                RedirectAttributes redirectAttributes) {
@@ -127,6 +135,8 @@ public class JobSeekerController {
         model.addAttribute("jobSeeker", seekerService.getById(seeker.getId()));
         return "jobseeker/edit";
     }
+
+    // ─── HANDLE PROFILE UPDATE ──────────────────────────────────────────────────
 
     @PostMapping("/edit")
     public String updateProfile(
@@ -148,7 +158,8 @@ public class JobSeekerController {
         try {
             JobSeeker updated = seekerService.updateProfile(loggedIn.getId(), updatedData);
             session.setAttribute("loggedInSeeker", updated);
-            redirectAttributes.addFlashAttribute("successMessage", "Profile updated!");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Profile updated!");
             return "redirect:/seekers/dashboard";
         } catch (RuntimeException e) {
             redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
@@ -157,6 +168,7 @@ public class JobSeekerController {
     }
 
     // ─── APPLY TO JOB ────────────────────────────────────────────────────────────
+
     @PostMapping("/apply/{jobId}")
     public String applyToJob(
             @PathVariable Long jobId,
@@ -184,6 +196,7 @@ public class JobSeekerController {
     }
 
     // ─── WITHDRAW APPLICATION ────────────────────────────────────────────────────
+
     @PostMapping("/withdraw/{jobId}")
     public String withdraw(@PathVariable Long jobId, HttpSession session,
                            RedirectAttributes redirectAttributes) {
@@ -205,6 +218,7 @@ public class JobSeekerController {
     }
 
     // ─── DELETE ACCOUNT ──────────────────────────────────────────────────────────
+
     @PostMapping("/delete")
     public String deleteAccount(HttpSession session,
                                 RedirectAttributes redirectAttributes) {
@@ -214,18 +228,26 @@ public class JobSeekerController {
             return "redirect:/seekers/login";
         }
 
-        seekerService.deleteSeeker(seeker.getId());
-        session.invalidate();
-        redirectAttributes.addFlashAttribute("successMessage",
-                "Account deleted successfully");
-        return "redirect:/";
+        try {
+            seekerService.deleteSeeker(seeker.getId());
+            session.invalidate();
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Account deleted successfully");
+            return "redirect:/";
+        } catch (RuntimeException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/seekers/dashboard";
+        }
     }
 
     // ─── LOGOUT ──────────────────────────────────────────────────────────────────
+
     @GetMapping("/logout")
-    public String logout(HttpSession session, RedirectAttributes redirectAttributes) {
+    public String logout(HttpSession session,
+                         RedirectAttributes redirectAttributes) {
         session.invalidate();
-        redirectAttributes.addFlashAttribute("successMessage", "Logged out successfully");
+        redirectAttributes.addFlashAttribute("successMessage",
+                "Logged out successfully");
         return "redirect:/";
     }
 }

@@ -33,6 +33,7 @@ public class JobApplicationService {
 
     @Transactional
     public JobApplication apply(Long jobSeekerId, Long jobId, String coverLetter) {
+
         // Rule 1: Prevent duplicate applications
         if (applicationRepository.existsByJobSeekerIdAndJobId(jobSeekerId, jobId)) {
             throw new RuntimeException("You have already applied to this job");
@@ -52,7 +53,7 @@ public class JobApplicationService {
         application.setJob(job);
         application.setCoverLetter(coverLetter);
         application.setStatus(ApplicationStatus.PENDING);
-        // appliedAt set automatically by @PrePersist
+        // appliedAt is set automatically by @PrePersist in JobApplication
 
         return applicationRepository.save(application);
     }
@@ -67,7 +68,8 @@ public class JobApplicationService {
         return applicationRepository.findByJobId(jobId);
     }
 
-    public List<JobApplication> getApplicationsForJobByStatus(Long jobId, ApplicationStatus status) {
+    public List<JobApplication> getApplicationsForJobByStatus(Long jobId,
+                                                               ApplicationStatus status) {
         return applicationRepository.findByJobIdAndStatus(jobId, status);
     }
 
@@ -76,7 +78,8 @@ public class JobApplicationService {
     @Transactional
     public JobApplication updateStatus(Long applicationId, ApplicationStatus newStatus) {
         JobApplication application = applicationRepository.findById(applicationId)
-                .orElseThrow(() -> new RuntimeException("Application not found: " + applicationId));
+                .orElseThrow(() -> new RuntimeException(
+                        "Application not found: " + applicationId));
 
         application.setStatus(newStatus);
         return applicationRepository.save(application);
@@ -92,8 +95,8 @@ public class JobApplicationService {
 
         // Only allow withdrawal if still PENDING
         if (application.getStatus() != ApplicationStatus.PENDING) {
-            throw new RuntimeException("Cannot withdraw — application is already " +
-                    application.getStatus());
+            throw new RuntimeException("Cannot withdraw — application is already "
+                    + application.getStatus());
         }
 
         applicationRepository.delete(application);
